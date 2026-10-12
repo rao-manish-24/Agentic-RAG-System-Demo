@@ -67,7 +67,7 @@ class Answer:
 
 
 def validate_citations(draft: AnswerDraft, hits: list[SearchHit]) -> tuple[Citation, ...]:
-    if draft.status != "answered":
+    if draft.status != "answered" or not draft.answer.strip():
         return ()
     labels = {int(n) for n in re.findall(r"\[(\d+)\]", draft.answer)}
     if not draft.citations or not labels.issubset({c.label for c in draft.citations}):
@@ -84,6 +84,17 @@ def validate_citations(draft: AnswerDraft, hits: list[SearchHit]) -> tuple[Citat
             Citation(citation.label, hit.id, hit.source, hit.page, citation.quote, hit.text)
         )
     return tuple(citations)
+
+
+def safe_direct_response(question: str) -> str | None:
+    normalized = question.casefold().strip().rstrip(".!?")
+    if normalized in {"hi", "hello", "hey", "good morning", "good afternoon", "good evening"}:
+        return "Hello! Upload a document and ask me a question about it."
+    if normalized in {"thanks", "thank you", "thanks a lot"}:
+        return "You're welcome! Ask another document question whenever you're ready."
+    if normalized in {"what can you do", "how can you help", "who are you"}:
+        return "I answer questions about your uploaded documents with source citations."
+    return None
 
 
 class RetrievalAgent:
@@ -107,9 +118,10 @@ class RetrievalAgent:
         else:
             plan = self.model.plan(question, history)
             trace.append(f"Planner: {plan.reason}")
-            if plan.route == "direct":
+            direct_response = safe_direct_response(question) if plan.route == "direct" else None
+            if direct_response is not None:
                 return Answer(
-                    plan.direct_answer,
+                    direct_response,
                     (),
                     False,
                     (),
@@ -118,7 +130,11 @@ class RetrievalAgent:
                     0,
                     False,
                 )
-            queries = list(dict.fromkeys(q.strip()[:1000] for q in plan.queries if q.strip()))
+            if plan.route == "direct":
+                trace.append("Unsafe direct classification overridden: factual evidence required")
+                queries = [question]
+            else:
+                queries = list(dict.fromkeys(q.strip()[:1000] for q in plan.queries if q.strip()))
             if not queries:
                 queries = [question]
         hits: dict[str, SearchHit] = {}

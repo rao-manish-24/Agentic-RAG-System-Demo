@@ -71,7 +71,7 @@ def test_direct_route_does_not_retrieve_or_generate_grounded_answer() -> None:
         route="direct", queries=[], direct_answer="Hello!", reason="greeting"
     )
     answer = RetrievalAgent(store, model).ask("Hi")
-    assert answer.text == "Hello!"
+    assert answer.text.startswith("Hello!")
     assert not answer.retrieved
     assert store.queries == []
     assert model.answer_calls == 0
@@ -163,3 +163,29 @@ def test_history_is_bounded_and_empty_plan_falls_back() -> None:
     assert len(model.history) == 8
     assert len(model.history[0].content) == 4000
     assert store.queries == ["Fallback?"]
+
+
+def test_misrouted_factual_question_cannot_bypass_grounding() -> None:
+    store, model = FakeRetriever(), FakeModel()
+    model.plan_result = RetrievalPlan(
+        route="direct", queries=[], direct_answer="Made-up uncited fact", reason="mistake"
+    )
+    answer = RetrievalAgent(store, model).ask("How long do Atlas refunds take?")
+    assert store.queries == ["How long do Atlas refunds take?"]
+    assert answer.retrieved and answer.citations
+    assert "Made-up" not in answer.text
+
+
+def test_direct_greeting_ignores_unverified_model_text() -> None:
+    model = FakeModel()
+    model.plan_result = RetrievalPlan(
+        route="direct", queries=[], direct_answer="Made-up uncited fact", reason="greeting"
+    )
+    assert "Made-up" not in RetrievalAgent(FakeRetriever(), model).ask("Hello!").text
+
+
+@pytest.mark.parametrize("text", ["", "   ", "\n\t"])
+def test_blank_grounded_answer_abstains(text: str) -> None:
+    model = FakeModel()
+    model.draft.answer = text
+    assert RetrievalAgent(FakeRetriever(), model).ask("Question").abstained
