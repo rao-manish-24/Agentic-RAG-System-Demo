@@ -1,0 +1,5 @@
+Service security handbook
+Atlas encrypts data at rest using AES-256.
+Atlas retains deleted workspace data for 60 days before permanent erasure.
+Beacon retains deleted workspace data for 21 days before permanent erasure.
+This handbook does not document office locations or CEO names.

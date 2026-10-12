@@ -12,5 +12,5 @@ jobs:
       - run: pip install -r requirements.txt
       - run: ruff check .
       - run: ruff format --check .
-      - run: mypy agentic_rag tests
+      - run: mypy agentic_rag tests scripts
       - run: pytest -q
