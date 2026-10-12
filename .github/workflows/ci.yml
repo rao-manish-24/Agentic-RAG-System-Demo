@@ -10,7 +10,8 @@ jobs:
           python-version: '3.11'
           cache: pip
       - run: pip install -r requirements.txt
+      - run: sudo apt-get update -qq && sudo apt-get install -y antiword
       - run: ruff check .
       - run: ruff format --check .
-      - run: mypy agentic_rag tests scripts
+      - run: mypy agentic_rag tests scripts app.py
       - run: pytest -q
