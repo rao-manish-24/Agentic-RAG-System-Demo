@@ -54,3 +54,24 @@ does one search of the original question, without planning or repair. The table 
 correctness, expected-source recall, routing, end-to-end latency and search count. JSON contains
 all per-question answers/scores. This is a small smoke benchmark, not a claim of agent superiority.
 Live evaluations incur OpenAI costs. Override models with `RAG_CHAT_MODEL`/`RAG_EMBEDDING_MODEL`.
+
+## Chat UI
+```sh
+.venv/bin/streamlit run app.py --server.address 0.0.0.0 --server.port 8501
+```
+Open `http://localhost:8501`. Upload documents, click **Index documents**, and ask questions.
+Source expanders show filename, page, exact supporting quote and full chunk. Agent traces show
+queries/routing; each answer shows end-to-end/retrieval latency and the dashboard tracks last/mean
+latency. Switch to the single-shot baseline to compare behavior interactively. Clear chat resets
+conversation and timing history, not documents.
+
+Each browser session gets an isolated workspace under `RAG_DATA_DIR/sessions`; a new session
+starts empty. Index files remain on disk until manually removed. The CLI index is separate.
+Original uploads are not saved by our code; extracted text/vectors are persisted. OpenAI receives
+document text for embeddings and retrieved chunks/questions/history for responses. Do not upload
+confidential documents unless this data flow meets your requirements. No authentication is provided;
+this is a local demo, not a production or public multi-tenant deployment.
+
+Generate sample uploads with `.venv/bin/python scripts/make_fixtures.py`. The legacy DOC fixture
+was exported from our synthetic policy with LibreOffice; LibreOffice is **not** a runtime dependency.
+Scanned/password-protected PDFs, malformed files and missing OpenAI credentials show safe errors.

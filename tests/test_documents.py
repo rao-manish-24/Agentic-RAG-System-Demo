@@ -1,5 +1,7 @@
 import io
+import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 from docx import Document
@@ -71,3 +73,11 @@ def test_invalid_documents(name: str, content: bytes) -> None:
 def test_bad_chunk_parameters() -> None:
     with pytest.raises(ValueError):
         chunk_document("a.txt", b"a", chunk_size=10, overlap=10)
+
+
+@pytest.mark.skipif(
+    shutil.which("antiword") is None, reason="antiword system package not installed"
+)
+def test_real_legacy_doc_fixture() -> None:
+    content = (Path(__file__).parent / "fixtures/atlas_legacy.doc").read_bytes()
+    assert "30 days" in load_document("atlas_legacy.doc", content)[0].text
